@@ -695,19 +695,19 @@
         document.body.appendChild(input);
       }
 
+      // Use custom song selection with touch-friendly buttons
       this.onShowOverlay({
         title: "Chansons",
-        text: "1. Frère Jacques\n2. Au Clair de la Lune\n3. Fais Dodo\n4. Importer MIDI",
-        tiny: "Appuie sur 1-4",
-        primaryText: "Retour",
+        text: "",
+        tiny: "Choisis une chanson",
+        primaryText: "",
         secondaryText: "",
-        onPrimary: () => {
-          this.resetGame();
-        },
-        onSecondary: null
+        onPrimary: null,
+        onSecondary: null,
+        customContent: this.createSongSelectionButtons()
       });
       
-      // Temporary key listener for selection
+      // Also keep keyboard listener for desktop users
       const handler = (e) => {
         if (e.key === "1") {
           document.removeEventListener("keydown", handler);
@@ -724,9 +724,118 @@
         } else if (e.key === "4") {
           document.removeEventListener("keydown", handler);
           document.getElementById('midiInput').click();
+        } else if (e.key === "Escape") {
+          document.removeEventListener("keydown", handler);
+          this.resetGame();
         }
       };
       document.addEventListener("keydown", handler);
+      
+      // Store handler reference for cleanup
+      this._songSelectionHandler = handler;
+    }
+
+    createSongSelectionButtons() {
+      const container = document.createElement('div');
+      container.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; margin: 0 auto;';
+      
+      const songs = [
+        { key: 'frere_jacques', name: '🎵 Frère Jacques' },
+        { key: 'au_clair_de_la_lune', name: '🌙 Au Clair de la Lune' },
+        { key: 'fais_dodo', name: '😴 Fais Dodo' },
+        { key: 'midi', name: '📁 Importer MIDI' }
+      ];
+      
+      songs.forEach(song => {
+        const btn = document.createElement('button');
+        btn.textContent = song.name;
+        btn.style.cssText = `
+          padding: 16px 24px;
+          font-size: 18px;
+          font-weight: bold;
+          border: 2px solid #FFF;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.1);
+          color: #FFF;
+          cursor: pointer;
+          transition: all 0.2s;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+        `;
+        
+        btn.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          btn.style.background = 'rgba(255, 255, 255, 0.3)';
+        }, { passive: false });
+        
+        btn.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          btn.style.background = 'rgba(255, 255, 255, 0.1)';
+          this.handleSongSelection(song.key);
+        }, { passive: false });
+        
+        btn.addEventListener('click', () => {
+          this.handleSongSelection(song.key);
+        });
+        
+        btn.addEventListener('mouseenter', () => {
+          btn.style.background = 'rgba(255, 255, 255, 0.2)';
+        });
+        
+        btn.addEventListener('mouseleave', () => {
+          btn.style.background = 'rgba(255, 255, 255, 0.1)';
+        });
+        
+        container.appendChild(btn);
+      });
+      
+      // Add back button
+      const backBtn = document.createElement('button');
+      backBtn.textContent = '← Retour';
+      backBtn.style.cssText = `
+        padding: 12px 20px;
+        font-size: 16px;
+        border: 1px solid #888;
+        border-radius: 8px;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        margin-top: 10px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      `;
+      
+      backBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (this._songSelectionHandler) {
+          document.removeEventListener("keydown", this._songSelectionHandler);
+        }
+        this.resetGame();
+      }, { passive: false });
+      
+      backBtn.addEventListener('click', () => {
+        if (this._songSelectionHandler) {
+          document.removeEventListener("keydown", this._songSelectionHandler);
+        }
+        this.resetGame();
+      });
+      
+      container.appendChild(backBtn);
+      
+      return container;
+    }
+
+    handleSongSelection(key) {
+      if (this._songSelectionHandler) {
+        document.removeEventListener("keydown", this._songSelectionHandler);
+      }
+      
+      if (key === 'midi') {
+        document.getElementById('midiInput').click();
+      } else {
+        this.onHideOverlay();
+        this.startSong(key);
+      }
     }
 
     handleMidiUpload(event) {
@@ -832,7 +941,7 @@
           
           // Progress bar background
           const barX = 20;
-          const barY = h - 60;
+          const barY = h - 100;
           const barWidth = w - 40;
           const barHeight = 20;
           
@@ -855,22 +964,8 @@
           ctx.textAlign = "center";
           ctx.fillText(`${currentNote} / ${totalNotes}`, w / 2, barY + 15);
           
-          // Controls info
-          ctx.font = "14px Arial";
-          ctx.textAlign = "center";
-          
-          if (this.isStepMode) {
-            ctx.fillText("← Précédent | → Suivant | Espace: Jouer | Échap: Quitter", w / 2, barY - 15);
-          } else {
-            ctx.fillText("Espace: Pause/Reprendre | Échap: Quitter", w / 2, barY - 15);
-            
-            // Show pause indicator
-            if (this.demoPaused) {
-              ctx.fillStyle = "#FFD700";
-              ctx.font = "bold 20px Arial";
-              ctx.fillText("⏸ PAUSE", w / 2, barY - 40);
-            }
-          }
+          // Draw touch-friendly control buttons
+          this.drawDemoControls(ctx, w, h);
         }
       }
     }
@@ -972,6 +1067,120 @@
       return "";
     }
 
+    // Draw touch-friendly demo control buttons
+    drawDemoControls(ctx, w, h) {
+      const btnY = h - 55;
+      const btnHeight = 45;
+      const btnWidth = 100;
+      const spacing = 15;
+      
+      // Store button positions for touch detection
+      this.demoButtons = [];
+      
+      if (this.isStepMode) {
+        // Step mode: Previous, Play, Next, Exit buttons
+        const totalWidth = btnWidth * 4 + spacing * 3;
+        let startX = (w - totalWidth) / 2;
+        
+        // Previous button
+        this.drawButton(ctx, startX, btnY, btnWidth, btnHeight, "◀ Préc", "#4169E1");
+        this.demoButtons.push({ x: startX, y: btnY, w: btnWidth, h: btnHeight, action: 'prev' });
+        startX += btnWidth + spacing;
+        
+        // Play button
+        this.drawButton(ctx, startX, btnY, btnWidth, btnHeight, "▶ Jouer", "#32CD32");
+        this.demoButtons.push({ x: startX, y: btnY, w: btnWidth, h: btnHeight, action: 'play' });
+        startX += btnWidth + spacing;
+        
+        // Next button
+        this.drawButton(ctx, startX, btnY, btnWidth, btnHeight, "Suiv ▶", "#4169E1");
+        this.demoButtons.push({ x: startX, y: btnY, w: btnWidth, h: btnHeight, action: 'next' });
+        startX += btnWidth + spacing;
+        
+        // Exit button
+        this.drawButton(ctx, startX, btnY, btnWidth, btnHeight, "✕ Quitter", "#DC143C");
+        this.demoButtons.push({ x: startX, y: btnY, w: btnWidth, h: btnHeight, action: 'exit' });
+        
+      } else {
+        // Auto mode: Pause/Resume and Exit buttons
+        const totalWidth = btnWidth * 2 + spacing;
+        let startX = (w - totalWidth) / 2;
+        
+        // Pause/Resume button
+        const pauseText = this.demoPaused ? "▶ Reprendre" : "⏸ Pause";
+        const pauseColor = this.demoPaused ? "#32CD32" : "#FFD700";
+        this.drawButton(ctx, startX, btnY, btnWidth + 20, btnHeight, pauseText, pauseColor);
+        this.demoButtons.push({ x: startX, y: btnY, w: btnWidth + 20, h: btnHeight, action: 'pause' });
+        startX += btnWidth + 20 + spacing;
+        
+        // Exit button
+        this.drawButton(ctx, startX, btnY, btnWidth, btnHeight, "✕ Quitter", "#DC143C");
+        this.demoButtons.push({ x: startX, y: btnY, w: btnWidth, h: btnHeight, action: 'exit' });
+      }
+    }
+    
+    drawButton(ctx, x, y, w, h, text, color) {
+      // Button background
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, 8);
+      ctx.fill();
+      
+      // Button border
+      ctx.strokeStyle = "#FFF";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, 8);
+      ctx.stroke();
+      
+      // Button text
+      ctx.fillStyle = "#FFF";
+      ctx.font = "bold 14px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x + w/2, y + h/2);
+      ctx.textBaseline = "alphabetic"; // Reset
+    }
+    
+    // Check if a point hits a demo control button
+    checkDemoButtonHit(x, y) {
+      if (!this.demoButtons) return null;
+      
+      for (const btn of this.demoButtons) {
+        if (x >= btn.x && x <= btn.x + btn.w &&
+            y >= btn.y && y <= btn.y + btn.h) {
+          return btn.action;
+        }
+      }
+      return null;
+    }
+    
+    // Handle demo button action
+    handleDemoButtonAction(action) {
+      switch (action) {
+        case 'prev':
+          this.stepDemoBackward();
+          break;
+        case 'next':
+          this.stepDemoForward();
+          break;
+        case 'play':
+          this.playCurrentDemoNote();
+          break;
+        case 'pause':
+          this.toggleDemoPause();
+          break;
+        case 'exit':
+          if (this.isStepMode) {
+            this.exitStepDemo();
+          } else {
+            this.isDemoPlaying = false;
+            this.startSong(this.currentSongKey);
+          }
+          break;
+      }
+    }
+
     bindControls() {
       const getNoteFromKey = (k) => {
         const found = this.keys.find(obj => obj.key === k.toLowerCase());
@@ -1068,7 +1277,7 @@
       const handleStart = (e) => {
         if (!this.isActive()) return;
         e.preventDefault();
-        if (this.isDemoPlaying) return; // Block user input during demo - after preventDefault
+        
         const rect = this.canvas.getBoundingClientRect();
         // Handle multi-touch or single mouse
         const touches = e.touches || [{ clientX: e.clientX, clientY: e.clientY }];
@@ -1076,6 +1285,17 @@
         for (let i = 0; i < touches.length; i++) {
             const x = (touches[i].clientX - rect.left) * (this.canvas.width / rect.width);
             const y = (touches[i].clientY - rect.top) * (this.canvas.height / rect.height);
+            
+            // Check for demo control button hits first
+            if (this.isDemoPlaying) {
+              const action = this.checkDemoButtonHit(x, y);
+              if (action) {
+                this.handleDemoButtonAction(action);
+                return; // Don't process as piano key
+              }
+              return; // Block piano input during demo
+            }
+            
             const note = getNoteFromPoint(x, y);
             if (note) {
                 this.activeKeys.add(note);

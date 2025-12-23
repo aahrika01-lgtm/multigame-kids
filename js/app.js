@@ -95,15 +95,29 @@
     if (elMobileControls) elMobileControls.style.display = showMobileControls ? "" : "none";
   }
 
-  function showOverlay({ title, text, tiny, primaryText, secondaryText, onPrimary, onSecondary }) {
+  function showOverlay({ title, text, tiny, primaryText, secondaryText, onPrimary, onSecondary, customContent }) {
     // When an overlay is shown, gameplay is effectively paused: stop movement.
     if (game) game.setMoveDir(0);
 
     overlayEls.title.textContent = title || "";
-    overlayEls.text.textContent = text || "";
     overlayEls.tiny.textContent = tiny || "";
-    overlayEls.primary.textContent = primaryText || "OK";
-    overlayEls.secondary.textContent = secondaryText || "Menu";
+    
+    // Handle custom content (for touch-friendly buttons like song selection)
+    if (customContent) {
+      overlayEls.text.textContent = "";
+      overlayEls.text.appendChild(customContent);
+      // Hide default buttons when using custom content
+      overlayEls.primary.style.display = "none";
+      overlayEls.secondary.style.display = "none";
+    } else {
+      overlayEls.text.textContent = text || "";
+      overlayEls.primary.textContent = primaryText || "OK";
+      overlayEls.secondary.textContent = secondaryText || "Menu";
+      // Show/hide buttons based on handlers
+      overlayEls.primary.style.display = onPrimary ? "" : "none";
+      overlayEls.secondary.style.display = onSecondary ? "" : "none";
+    }
+    
     overlayHandlers.primary = onPrimary || null;
     overlayHandlers.secondary = onSecondary || null;
     elOverlay.classList.remove("isHidden");
@@ -113,6 +127,11 @@
     elOverlay.classList.add("isHidden");
     overlayHandlers.primary = null;
     overlayHandlers.secondary = null;
+    
+    // Clean up any custom content and restore button visibility
+    overlayEls.text.textContent = "";
+    overlayEls.primary.style.display = "";
+    overlayEls.secondary.style.display = "";
   }
 
   function lockAudioOnce() {
