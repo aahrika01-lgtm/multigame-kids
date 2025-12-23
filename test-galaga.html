@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Test Galaga</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0a0a1a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #00ff00;
+      text-shadow: 0 0 10px #00ff00;
+    }
+
+    .container {
+      background: #1a1a2e;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 255, 0, 0.2);
+    }
+
+    canvas {
+      display: block;
+      border: 2px solid #00ff00;
+      border-radius: 8px;
+      background: #0a0a1a;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+    }
+
+    .hud {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: rgba(0, 255, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    .hudItem {
+      text-align: center;
+    }
+
+    .hudLabel {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .hudValue {
+      display: block;
+      font-size: 20px;
+      font-weight: bold;
+      color: #00ff00;
+      text-shadow: 0 0 5px #00ff00;
+    }
+
+    .controls {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(0, 255, 0, 0.05);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .controls h3 {
+      margin-bottom: 10px;
+      color: #00ff00;
+      font-size: 16px;
+    }
+
+    .controls p {
+      margin: 5px 0;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    .btn {
+      margin-top: 15px;
+      padding: 12px 24px;
+      background: #00ff00;
+      color: #0a0a1a;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0, 255, 0, 0.3);
+    }
+
+    .btn:hover {
+      background: #00cc00;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 255, 0, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .overlay.active {
+      display: flex;
+    }
+
+    .overlayCard {
+      background: #1a1a2e;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      border: 2px solid #00ff00;
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+      max-width: 400px;
+    }
+
+    .overlayTitle {
+      font-size: 28px;
+      margin-bottom: 15px;
+      color: #00ff00;
+      text-shadow: 0 0 10px #00ff00;
+    }
+
+    .overlayText {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .overlayTiny {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    .overlayButtons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .overlayButtons button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .overlayButtons button:first-child {
+      background: #00ff00;
+      color: #0a0a1a;
+    }
+
+    .overlayButtons button:last-child {
+      background: transparent;
+      color: #00ff00;
+      border: 2px solid #00ff00;
+    }
+
+    .overlayButtons button:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Test Galaga</h1>
+
+  <div class="container">
+    <div class="hud">
+      <div class="hudItem">
+        <span class="hudLabel">Niveau</span>
+        <span id="hudLevel" class="hudValue">1</span>
+      </div>
+      <div class="hudItem">
+        <span class="hudLabel">Vies</span>
+        <span id="hudLives" class="hudValue">3</span>
+      </div>
+      <div class="hudItem">
+        <span class="hudLabel">Score</span>
+        <span id="hudScore" class="hudValue">0</span>
+      </div>
+      <div class="hudItem">
+        <span class="hudLabel">Combo</span>
+        <span id="hudCombo" class="hudValue">x1</span>
+      </div>
+    </div>
+
+    <canvas id="gameCanvas" width="900" height="540"></canvas>
+
+    <div class="controls">
+      <h3>Contrôles</h3>
+      <p>⬅️ ➡️ Flèches gauche/droite ou A/D - Déplacer le vaisseau</p>
+      <p>⬆️ Espace ou Z/W - Tirer</p>
+      <p>P - Pause</p>
+      <p>Tactile : Glisser pour déplacer, Taper pour tirer</p>
+    </div>
+
+    <button class="btn" id="btnStart">Démarrer le jeu</button>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="overlayCard">
+      <div class="overlayTitle" id="overlayTitle">Prêt ?</div>
+      <div class="overlayText" id="overlayText">Détruis tous les aliens !</div>
+      <div class="overlayTiny" id="overlayTiny">Espace = tirer — P = pause</div>
+      <div class="overlayButtons">
+        <button id="btnOverlayPrimary">GO !</button>
+        <button id="btnOverlaySecondary">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/audio.js"></script>
+  <script src="./js/galaga.js"></script>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const overlay = document.getElementById("overlay");
+    const btnStart = document.getElementById("btnStart");
+
+    const hud = {
+      level: document.getElementById("hudLevel"),
+      lives: document.getElementById("hudLives"),
+      score: document.getElementById("hudScore"),
+      combo: document.getElementById("hudCombo"),
+    };
+
+    const overlayEls = {
+      title: document.getElementById("overlayTitle"),
+      text: document.getElementById("overlayText"),
+      tiny: document.getElementById("overlayTiny"),
+      primary: document.getElementById("btnOverlayPrimary"),
+      secondary: document.getElementById("btnOverlaySecondary"),
+    };
+
+    let overlayHandlers = { primary: null, secondary: null };
+
+    function showOverlay({ title, text, tiny, primaryText, secondaryText, onPrimary, onSecondary }) {
+      overlayEls.title.textContent = title || "";
+      overlayEls.text.textContent = text || "";
+      overlayEls.tiny.textContent = tiny || "";
+      overlayEls.primary.textContent = primaryText || "OK";
+      overlayEls.secondary.textContent = secondaryText || "Annuler";
+      overlayHandlers.primary = onPrimary || null;
+      overlayHandlers.secondary = onSecondary || null;
+      overlay.classList.add("active");
+    }
+
+    function hideOverlay() {
+      overlay.classList.remove("active");
+      overlayHandlers.primary = null;
+      overlayHandlers.secondary = null;
+    }
+
+    overlayEls.primary.addEventListener("click", () => {
+      if (overlayHandlers.primary) overlayHandlers.primary();
+    });
+
+    overlayEls.secondary.addEventListener("click", () => {
+      if (overlayHandlers.secondary) overlayHandlers.secondary();
+    });
+
+    // Initialize game
+    const game = new GalagaGame({
+      canvas,
+      hud,
+      onShowOverlay: showOverlay,
+      onHideOverlay: hideOverlay,
+      onBackToMenu: () => {
+        hideOverlay();
+        btnStart.style.display = "block";
+      },
+      isActive: () => true,
+    });
+
+    game.start();
+
+    btnStart.addEventListener("click", async () => {
+      btnStart.style.display = "none";
+
+      // Unlock audio
+      if (window.AudioKit) await window.AudioKit.unlock();
+      if (window.MusicKit) await window.MusicKit.play("procedural:galaga");
+
+      game.resetGame();
+      showOverlay({
+        title: "Prêt ?",
+        text: "Détruis tous les aliens !",
+        tiny: "Flèches / ZQSD — Espace = tirer — P = pause",
+        primaryText: "GO !",
+        secondaryText: "Annuler",
+        onPrimary: () => {
+          hideOverlay();
+          game.launch();
+        },
+        onSecondary: () => {
+          hideOverlay();
+          btnStart.style.display = "block";
+          if (window.MusicKit) window.MusicKit.pause();
+        },
+      });
+    });
+
+    // Pause with P key
+    window.addEventListener("keydown", (e) => {
+      if (e.key.toLowerCase() === "p") {
+        if (game.isPaused()) {
+          hideOverlay();
+          game.pause(false);
+        } else {
+          game.pause(true);
+          showOverlay({
+            title: "Pause",
+            text: "On fait une pause 🙂",
+            tiny: "Appuie sur Continuer",
+            primaryText: "Continuer",
+            secondaryText: "Quitter",
+            onPrimary: () => {
+              hideOverlay();
+              game.pause(false);
+            },
+            onSecondary: () => {
+              hideOverlay();
+              btnStart.style.display = "block";
+              if (window.MusicKit) window.MusicKit.pause();
+            },
+          });
+        }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <title>MultiGame Kids — Jeux classiques</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <!-- Toy camera shell -->
+  <div class="camera" id="camera">
+    <header class="cameraTop" aria-label="Barre supérieure">
+      <div class="brand">
+        <span class="brandDot" aria-hidden="true"></span>
+        <span class="brandText">MultiGame Kids</span>
+      </div>
+
+      <div class="topIcons" aria-hidden="true">
+        <span class="pill">HD</span>
+        <span class="pill">FUN</span>
+        <span class="pill">SAFE</span>
+      </div>
+    </header>
+
+    <!-- Screen bezel -->
+    <main class="screenBezel" aria-label="Écran">
+      <div class="screen" id="screen">
+        <!-- Screen chrome -->
+        <div class="screenBar">
+          <button class="iconBtn" id="btnBack" type="button" aria-label="Retour au menu">
+            ⟵
+          </button>
+
+          <div class="screenTitle" id="screenTitle">Jeux classiques</div>
+
+          <div class="screenBarRight">
+            <button class="iconBtn" id="btnSound" type="button" aria-label="Son">
+              🔊
+            </button>
+            <button class="iconBtn" id="btnPause" type="button" aria-label="Pause">
+              ⏸
+            </button>
+          </div>
+        </div>
+
+        <!-- Menu Screen -->
+        <section class="panel panelMenu" id="menuPanel" aria-label="Menu principal">
+          <div class="menuHero">
+            <div class="bigBadge bigBadgePhoto">
+              <img class="heroAvatar" src="./elissa.png" alt="Elissa" />
+            </div>
+            <div>
+              <h1 class="h1">Jeux classiques</h1>
+              <p class="sub">Choisis un jeu</p>
+            </div>
+          </div>
+
+          <div class="menuGrid" role="menu" aria-label="Liste des jeux">
+            <button class="menuCard isActive" id="btnGameBrick" type="button" role="menuitem">
+              <div class="cardIcon" aria-hidden="true">🧱</div>
+              <div class="cardText">
+                <div class="cardTitle">Casse-briques</div>
+                <div class="cardDesc">Jouer</div>
+              </div>
+              <div class="cardChevron" aria-hidden="true">▶</div>
+            </button>
+
+            <button class="menuCard" id="btnGameSnake" type="button" role="menuitem">
+              <div class="cardIcon" aria-hidden="true">🐍</div>
+              <div class="cardText">
+                <div class="cardTitle">Snake</div>
+                <div class="cardDesc">Jouer</div>
+              </div>
+              <div class="cardChevron" aria-hidden="true">▶</div>
+            </button>
+
+            <button class="menuCard" id="btnGamePacman" type="button" role="menuitem">
+              <div class="cardIcon" aria-hidden="true">🟡</div>
+              <div class="cardText">
+                <div class="cardTitle">Ms. Pac‑Man</div>
+                <div class="cardDesc">Jouer</div>
+              </div>
+              <div class="cardChevron" aria-hidden="true">▶</div>
+            </button>
+
+            <button class="menuCard" id="btnGameGalaga" type="button" role="menuitem">
+              <div class="cardIcon" aria-hidden="true">🚀</div>
+              <div class="cardText">
+                <div class="cardTitle">Galaga</div>
+                <div class="cardDesc">Jouer</div>
+              </div>
+              <div class="cardChevron" aria-hidden="true">▶</div>
+            </button>
+
+            <button class="menuCard" id="btnGamePiano" type="button" role="menuitem">
+              <div class="cardIcon" aria-hidden="true">🎹</div>
+              <div class="cardText">
+                <div class="cardTitle">Piano</div>
+                <div class="cardDesc">Jouer</div>
+              </div>
+              <div class="cardChevron" aria-hidden="true">▶</div>
+            </button>
+
+            <button class="menuCard" id="btnGameTetris" type="button" role="menuitem">
+              <div class="cardIcon" aria-hidden="true">🧩</div>
+              <div class="cardText">
+                <div class="cardTitle">Tetris</div>
+                <div class="cardDesc">Jouer</div>
+              </div>
+              <div class="cardChevron" aria-hidden="true">▶</div>
+            </button>
+          </div>
+
+          <div class="menuFooter">
+            <div class="hintPill">Clavier: ◀ ▶ / Z Q S D / Espace</div>
+            <div class="hintPill">Tactile: glisser</div>
+          </div>
+        </section>
+
+        <!-- Game Screen -->
+        <section class="panel panelGame isHidden" id="gamePanel" aria-label="Jeu">
+          <div class="hud" aria-label="Infos">
+            <div class="hudItem"><span class="hudLabel">Niveau</span> <span id="hudLevel" class="hudValue">1</span></div>
+            <div class="hudItem"><span class="hudLabel">Vies</span> <span id="hudLives" class="hudValue">3</span></div>
+            <div class="hudItem"><span class="hudLabel">Score</span> <span id="hudScore" class="hudValue">0</span></div>
+            <div class="hudItem"><span class="hudLabel">Combo</span> <span id="hudCombo" class="hudValue">x1</span></div>
+          </div>
+
+          <div class="canvasWrap">
+            <canvas id="gameCanvas" width="900" height="540" aria-label="Zone de jeu"></canvas>
+          </div>
+
+          <div class="mobileControls" aria-label="Contrôles">
+            <button class="bigBtn" id="btnLeft" type="button">◀</button>
+            <button class="bigBtn" id="btnLaunch" type="button">GO</button>
+            <button class="bigBtn" id="btnRight" type="button">▶</button>
+          </div>
+        </section>
+
+        <!-- Overlay: Pause / End / Tips -->
+        <div class="overlay isHidden" id="overlay" role="dialog" aria-modal="true" aria-label="Fenêtre">
+          <div class="overlayCard">
+            <div class="overlayTitle" id="overlayTitle">Pause</div>
+            <div class="overlayText" id="overlayText">Appuie sur ▶ pour continuer</div>
+
+            <div class="overlayButtons">
+              <button class="ctaBtn" id="btnOverlayPrimary" type="button">Continuer</button>
+              <button class="ghostBtn" id="btnOverlaySecondary" type="button">Menu</button>
+            </div>
+
+            <div class="overlayTiny" id="overlayTiny">Espace = lancer / Entrée = OK</div>
+          </div>
+        </div>
+
+        <!-- Decorative screen corners -->
+        <div class="screenCorners" aria-hidden="true">
+          <span class="corner tl"></span>
+          <span class="corner tr"></span>
+          <span class="corner bl"></span>
+          <span class="corner br"></span>
+        </div>
+      </div>
+    </main>
+
+    <footer class="cameraBottom" aria-label="Barre inférieure">
+      <div class="bottomHint">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="bottomText">Sélectionne un jeu</span>
+      </div>
+      <div class="bottomBattery" aria-hidden="true">
+        <span class="battery"></span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./js/audio.js"></script>
+  <script src="./js/brickbreaker.js"></script>
+  <script src="./js/snake.js"></script>
+  <script src="./js/pacman.js"></script>
+  <script src="./js/galaga.js"></script>
+  <script src="./js/piano.js"></script>
+  <script src="./js/tetris.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

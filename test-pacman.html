@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pac-Man</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #fff;
+            display: block;
+        }
+        .controls {
+            margin-top: 20px;
+            color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="900" height="540"></canvas>
+    <div class="controls">
+        <button id="btnStart">START</button>
+        <button id="btnPause">PAUSE</button>
+        <div style="margin-top: 10px;">
+            Score: <span id="score">0</span> | 
+            Lives: <span id="lives">3</span> | 
+            Level: <span id="level">1</span>
+        </div>
+        <div style="margin-top: 10px; font-size: 12px;">
+            Utilisez les flèches du clavier pour jouer
+        </div>
+    </div>
+
+    <script src="js/pacman.js"></script>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const btnStart = document.getElementById('btnStart');
+        const btnPause = document.getElementById('btnPause');
+        
+        const hud = {
+            score: document.getElementById('score'),
+            lives: document.getElementById('lives'),
+            level: document.getElementById('level'),
+            combo: null
+        };
+
+        let pacmanGame = new window.PacmanGame({
+            canvas: canvas,
+            hud: hud,
+            onShowOverlay: (opts) => {
+                console.log('Show overlay:', opts.title);
+            },
+            onHideOverlay: () => {
+                console.log('Hide overlay');
+            },
+            onBackToMenu: () => {
+                console.log('Back to menu');
+            },
+            isActive: () => true  // Toujours actif
+        });
+
+        pacmanGame.start();
+        
+        btnStart.addEventListener('click', () => {
+            pacmanGame.resetGame();
+            pacmanGame.launch();
+            console.log('Game started');
+        });
+
+        btnPause.addEventListener('click', () => {
+            if (pacmanGame.isPaused()) {
+                pacmanGame.pause(false);
+                btnPause.textContent = 'PAUSE';
+            } else {
+                pacmanGame.pause(true);
+                btnPause.textContent = 'RESUME';
+            }
+        });
+
+        console.log('Test Pac-Man loaded. Click START to begin.');
+    </script>
+</body>
+</html>

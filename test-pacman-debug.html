@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pac-Man - Debug</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #fff;
+            display: block;
+        }
+        .controls {
+            margin-top: 20px;
+            color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #debugInfo {
+            margin-top: 20px;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 12px;
+            background: #111;
+            padding: 10px;
+            border: 1px solid #0f0;
+            max-width: 900px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .log-error {
+            color: #f00;
+        }
+        .log-warning {
+            color: #ff0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="900" height="540"></canvas>
+    <div class="controls">
+        <button id="btnStart">START</button>
+        <button id="btnPause">PAUSE</button>
+        <button id="btnDownloadLog">TÉLÉCHARGER LOG</button>
+        <button id="btnClearLog">EFFACER LOG</button>
+        <div style="margin-top: 10px;">
+            Score: <span id="score">0</span> | 
+            Lives: <span id="lives">3</span> | 
+            Level: <span id="level">1</span> |
+            PlayTime: <span id="playTime">0.00</span>s
+        </div>
+        <div style="margin-top: 10px; font-size: 12px;">
+            Utilisez les flèches du clavier pour jouer
+        </div>
+    </div>
+    <div id="debugInfo"></div>
+
+    <script src="js/pacman.js"></script>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const btnStart = document.getElementById('btnStart');
+        const btnPause = document.getElementById('btnPause');
+        const btnDownloadLog = document.getElementById('btnDownloadLog');
+        const btnClearLog = document.getElementById('btnClearLog');
+        const debugInfo = document.getElementById('debugInfo');
+        
+        const hud = {
+            score: document.getElementById('score'),
+            lives: document.getElementById('lives'),
+            level: document.getElementById('level'),
+            combo: null
+        };
+
+        // Système de logging
+        const logs = [];
+        const maxDisplayLogs = 50;
+        let logStartTime = Date.now();
+
+        function addLog(message, type = 'info') {
+            const timestamp = ((Date.now() - logStartTime) / 1000).toFixed(3);
+            const logEntry = `[${timestamp}s] ${message}`;
+            logs.push(logEntry);
+            
+            // Afficher dans le div (limité aux derniers logs)
+            const displayLogs = logs.slice(-maxDisplayLogs);
+            debugInfo.innerHTML = displayLogs.map(log => {
+                let className = 'log-entry';
+                if (log.includes('ERROR') || log.includes('died')) className += ' log-error';
+                if (log.includes('WARNING') || log.includes('paused')) className += ' log-warning';
+                return `<div class="${className}">${log}</div>`;
+            }).join('');
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+        }
+
+        function downloadLog() {
+            const logText = logs.join('\n');
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pacman-debug-${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addLog('Log téléchargé');
+        }
+
+        function clearLog() {
+            logs.length = 0;
+            debugInfo.innerHTML = '';
+            logStartTime = Date.now();
+            addLog('Log effacé - nouveau départ');
+        }
+
+        btnDownloadLog.addEventListener('click', downloadLog);
+        btnClearLog.addEventListener('click', clearLog);
+
+        // Wrapper pour capturer l'état du jeu
+        let lastState = null;
+        let lastPaused = null;
+        let lastPlayTime = 0;
+        let updateCount = 0;
+        let renderCount = 0;
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+        let currentFps = 0;
+
+        function monitorGame() {
+            if (!pacmanGame) return;
+
+            frameCount++;
+            const now = Date.now();
+            if (now - lastFpsTime >= 1000) {
+                currentFps = frameCount;
+                frameCount = 0;
+                lastFpsTime = now;
+            }
+
+            const state = pacmanGame.state;
+            const paused = pacmanGame.paused;
+            const playTime = pacmanGame.playTime || 0;
+
+            // Mettre à jour l'affichage du playTime
+            document.getElementById('playTime').textContent = playTime.toFixed(2);
+
+            // Détecter les changements d'état
+            if (state !== lastState) {
+                addLog(`État changé: ${lastState} → ${state}`);
+                lastState = state;
+            }
+
+            if (paused !== lastPaused) {
+                addLog(`Pause changé: ${paused ? 'EN PAUSE' : 'EN JEU'}`, paused ? 'warning' : 'info');
+                lastPaused = paused;
+            }
+
+            // Log périodique (toutes les 2 secondes)
+            if (Math.floor(playTime / 2) > Math.floor(lastPlayTime / 2)) {
+                const pac = pacmanGame.pac;
+                const ghosts = pacmanGame.ghosts;
+                const ghostStates = ghosts.map(g => `${g.name}:${g.state}`).join(', ');
+                addLog(`PlayTime=${playTime.toFixed(2)}s | Pac pos=(${pac.x},${pac.y}) dir=${pac.dir.name} | Ghosts: ${ghostStates} | FPS=${currentFps}`);
+            }
+
+            lastPlayTime = playTime;
+
+            requestAnimationFrame(monitorGame);
+        }
+
+        // Créer le jeu avec logging
+        addLog('Initialisation du jeu Pac-Man');
+        
+        let pacmanGame = new window.PacmanGame({
+            canvas: canvas,
+            hud: hud,
+            onShowOverlay: (opts) => {
+                addLog(`Overlay affiché: "${opts.title}"`, 'warning');
+            },
+            onHideOverlay: () => {
+                addLog('Overlay caché');
+            },
+            onBackToMenu: () => {
+                addLog('Retour au menu');
+            },
+            isActive: () => {
+                return true;  // Toujours actif pour le test
+            }
+        });
+
+        addLog('Jeu créé, démarrage de la boucle de rendu');
+        pacmanGame.start();
+        
+        // Démarrer le monitoring
+        monitorGame();
+        
+        btnStart.addEventListener('click', () => {
+            addLog('Bouton START cliqué');
+            pacmanGame.resetGame();
+            addLog('resetGame() appelé');
+            pacmanGame.launch();
+            addLog('launch() appelé');
+            
+            // Log l'état initial de Pac-Man
+            const pac = pacmanGame.pac;
+            addLog(`Pac-Man initial: pos=(${pac.x},${pac.y}), dir=${pac.dir.name}, want=${pac.want.name}`);
+            
+            // Log l'état des fantômes
+            pacmanGame.ghosts.forEach(g => {
+                addLog(`${g.name}: pos=(${g.x},${g.y}), state=${g.state}, releasePellets=${g.releasePellets}, releaseSeconds=${g.releaseSeconds}`);
+            });
+        });
+
+        btnPause.addEventListener('click', () => {
+            if (pacmanGame.isPaused()) {
+                pacmanGame.pause(false);
+                btnPause.textContent = 'PAUSE';
+                addLog('Jeu repris');
+            } else {
+                pacmanGame.pause(true);
+                btnPause.textContent = 'RESUME';
+                addLog('Jeu mis en pause manuellement');
+            }
+        });
+
+        addLog('Page chargée. Cliquez sur START pour commencer.');
+    </script>
+</body>
+</html>
